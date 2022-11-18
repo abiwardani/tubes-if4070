@@ -1,0 +1,183 @@
+body {
+    margin: 0px;
+}
+
+p.botname {
+    color: #373737;
+    font-size: 20px;
+    font-family: Arial;
+}
+
+a.botlink {
+    color: inherit;
+    text-decoration: none;
+}
+
+div.chatarea {
+    width: 800px;
+    margin: auto;
+}
+
+div.chatscroll {
+    overflow-y: auto;
+    border: none;
+    border-radius: 12px;
+    height: 500px;
+    width: 800px;
+    margin: 20px 0px 10px 0px;
+    padding: 5px;
+    display: flex;
+    flex-direction: column-reverse;
+    background-color: #b5c1fa;
+}
+
+table.chat {
+    width: 800px;
+    border-collapse: separate;
+    border-spacing: 10px 0px;
+}
+
+p.datebubble {
+    border-radius: 5px 5px 5px 5px;
+    background: #d9d9d9;
+    padding: 3px 8px;
+    margin: auto;
+    text-align: center;
+    width: fit-content;
+    font-weight: normal;
+    font-family: Arial;
+    font-size: 11px;
+}
+
+p.botbubble {
+    border-radius: 5px 20px 20px 20px;
+    background: #e3e3e3;
+    padding: 10px;
+    text-align: left;
+    width: fit-content;
+    max-width: 320px;
+    float: left;
+    font-weight: normal;
+    font-family: Arial;
+    font-size: 14px;
+    word-wrap: break-word;
+}
+
+p.bottime {
+    text-align: left;
+    vertical-align: text-bottom;
+    float: left;
+    width: fit-content;
+    font-weight: normal;
+    font-family: Arial;
+    font-size: 9px;
+    color: #3c3c3c;
+    padding: 5px;
+}
+
+p.userbubble {
+    border-radius: 20px 5px 20px 20px;
+    background: #d0e3bc;
+    padding: 10px;
+    text-align: right;
+    width: fit-content;
+    max-width: 320px;
+    float: right;
+    font-weight: normal;
+    font-family: Arial;
+    font-size: 14px;
+    word-wrap: break-word;
+}
+
+p.usertime {
+    text-align: right;
+    vertical-align: bottom;
+    float: right;
+    width: fit-content;
+    font-weight: normal;
+    font-family: Arial;
+    font-size: 9px;
+    color: #3c3c3c;
+    padding: 5px;
+}
+
+div.messageBox {
+    width: 810px;
+}
+
+#message {
+    height: 24px;
+    width: 740px;
+}
+
+#send {
+    float: right;
+    padding: 7px 10px;
+    border-radius: 14px;
+    border: none;
+    background-color: #343DAC;
+    color: #ffffff;
+}
+
+#send:hover {
+    background-color: #535cce;
+    cursor: pointer;
+}
+
+div.loading-dots {
+    vertical-align: text-bottom;
+    float: left;
+    width: fit-content;
+    display: none;
+    padding: 10px 0px 20px 30px;
+}
+
+.dot-flashing {
+    position: relative;
+    width: 10px;
+    height: 10px;
+    border-radius: 5px;
+    background-color: #9880ff;
+    color: #9880ff;
+    animation: dotFlashing 1s infinite linear alternate;
+    animation-delay: .5s;
+  }
+  
+  .dot-flashing::before, .dot-flashing::after {
+    content: '';
+    display: inline-block;
+    position: absolute;
+    top: 0;
+  }
+  
+  .dot-flashing::before {
+    left: -15px;
+    width: 10px;
+    height: 10px;
+    border-radius: 5px;
+    background-color: #9880ff;
+    color: #9880ff;
+    animation: dotFlashing 1s infinite alternate;
+    animation-delay: 0s;
+  }
+  
+  .dot-flashing::after {
+    left: 15px;
+    width: 10px;
+    height: 10px;
+    border-radius: 5px;
+    background-color: #9880ff;
+    color: #9880ff;
+    animation: dotFlashing 1s infinite alternate;
+    animation-delay: 1s;
+  }
+  
+  @keyframes dotFlashing {
+    0% {
+      background-color: #9880ff;
+    }
+    50%,
+    100% {
+      background-color: #ebe6ff;
+    }
+  }

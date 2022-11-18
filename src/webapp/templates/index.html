@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Chatbot</title>
+        <link rel="stylesheet" href="static/styles/indexstyles.css">
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.4.1/socket.io.min.js"></script>
+        <script type="text/javascript" src="static/scripts/chatbot_script.js"></script>
+    </head>
+    <body>
+    <div class="header">
+        <div class="header-box">
+            <table class="header-table">
+            </table>
+        </div>
+    </div>
+    <div class="chatarea">
+        <div class="chatscroll">
+            <div class="loading-dots">
+                <div class="dot-flashing"></div>
+            </div>
+            <table class="chat" id="chat">
+                <tr>
+                    <td>
+                        <p class="datebubble">Today</p>
+                    </td>
+                </tr>
+            </table>
+        </div>
+        <form id="sendmsg">
+            <div class="messageBox">
+                <input type="text" name="messageInput" id="message" placeholder="Ask a question..." autocomplete="off">
+                <input type="submit" id="send" name="sendButton" value="Send">
+            </div>
+        </form>
+    </div>    
+    </body>
+</html>

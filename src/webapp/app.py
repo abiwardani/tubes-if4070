@@ -9,6 +9,10 @@ import os
 MIN_SIM = 0.7
 MAX_SIM = 0.97
 
+# global variables
+MIN_SIM_TPC = 0.7
+TPC_MIN = 3
+
 # env variables
 port = os.environ.get("API_PORT")
 api_key = os.environ.get("API_KEY")
@@ -73,7 +77,6 @@ def chat_send_message(message):
     # TO-DO ...
 
     # IMPLEMENT: question matching/answer extraction
-
     # TO-DO get embedded query
     # TO-DO from top N topic matches
     # TO-DO for all embedded questions
@@ -83,12 +86,15 @@ def chat_send_message(message):
     # TO-DO if best similarity > min threshold AND database exhausted: return best answer
     # TO-DO else return default answer message
 
+
+
     # EXAMPLE: question matching
-    for qa_pair in qa_data["data"][0]["qas"]: # TEST: take topic at index 0 only
+def question_matching(topic_index):
+    for qa_pair in qa_data["data"][topic_index]["qas"]:
         try:
             # POST request to similarity API
             r = requests.post(
-                sim_api, json={'api_key': api_key, 's1': message['data'], 's2': qa_pair[0]})
+                sim_api, json={'api_key': api_key, 's1': message['data'], 's2': qa_pair["question"]})
         except Exception:
             # if unable to connect, send suitable error message
             print(Exception)
@@ -102,7 +108,7 @@ def chat_send_message(message):
             if (r.json()['sim'] > max_sim):
                 max_sim = r.json()['sim']
                 best_ans = qa_pair["answer"].capitalize()
-                break
+
 
         if (max_sim >= MAX_SIM):
             # if better than expected max similarity threshold

@@ -4,6 +4,8 @@ from sentence_transformers import util
 import hashlib
 import os
 import pickle
+import json
+import numpy as np
 
 # global variables
 SALT = b',w\x1dnW\xfdM3T\xe4\x1c\xb3_c(\xeb\xc9\x19\xbat\xe7\x0e\xa3\x19@2u\x0f\x8b;\xe8\xb0'
@@ -52,10 +54,10 @@ def hash_key(api_key):
 def index():
     return "Hello, World!"
 
-
+"""
 # compare similarity of two sentences
 @app.route('/similarity', methods=['POST'])
-def calculate_sentence_similarity():
+def calculate_sentence_similarity(threshold, limit):
     # check if hash of API key exists in database
     api_key = request.json['api_key']
     hashed_key = hash_key(api_key)
@@ -70,7 +72,47 @@ def calculate_sentence_similarity():
     sim = util.cos_sim(s1_embedding, s2_embedding)
 
     return jsonify({'sim': sim[0][0].item()})
+"""
 
+
+# find most similar embedded question within topic
+@app.route('/consult', methods=['POST'])
+def calculate_sentence_similarity(threshold, limit):
+    # client validation
+    # check if hash of API key exists in database
+    api_key = request.json['api_key']
+    hashed_key = hash_key(api_key)
+    if (Key.query.filter_by(hashed_key=hashed_key) is None):
+        abort(401, {"error": "Unauthorized access!"})
+
+    # similarity calculation
+    best_sim = 0
+    best_ans = ""
+    sim = 0
+    ans = ""
+
+
+    query = request.json['query']
+    s2 = request.json['s2']
+    topic = request.json['topic']
+    
+    f = open(f'../../data/embedded_qa/{topic}.json', encoding='utf-8')
+    topic_qa_data = json.load(f)
+    f.close()
+
+    q_embedding = model.encode(query)
+
+    for qa in topic_qa_data["qas"]:
+        doc_embedding = np.array(qa["embed"])
+        sim = util.cos_sim(q_embedding, doc_embedding)
+        ans = qa["embed"]
+
+        if (sim > threshold):
+            if(sim < limit):
+                best_sim = sim
+                best_ans = ans
+
+    return jsonify({'sim': best_sim[0][0].item(), 'answer' : best_ans})
 
 if __name__ == '__main__':
     app.run(debug=True, port=port)

@@ -4,6 +4,10 @@ from sentence_transformers import util
 import hashlib
 import os
 import pickle
+import json
+import numpy as np
+
+from .. import pipeline
 
 # global variables
 SALT = b',w\x1dnW\xfdM3T\xe4\x1c\xb3_c(\xeb\xc9\x19\xbat\xe7\x0e\xa3\x19@2u\x0f\x8b;\xe8\xb0'
@@ -12,7 +16,7 @@ port = os.environ.get("API_PORT")
 
 app = Flask(__name__)
 
-with open('models/sim-model.pkl', 'rb') as filehandler:
+with open('../pipeline/answerextraction/models/sim-model.pkl', 'rb') as filehandler:
     model = pickle.load(filehandler)
 
 # configure sqlalchemy
@@ -52,8 +56,75 @@ def hash_key(api_key):
 def index():
     return "Hello, World!"
 
+# get sentence embedding
+# encode_sentence(query)
+@app.route('/encode', methods=['POST'])
+def encode_sentence():
+    # client validation
+    # check if hash of API key exists in database
+    api_key = request.json['api_key']
+    hashed_key = hash_key(api_key)
+    if (Key.query.filter_by(hashed_key=hashed_key) is None):
+        abort(401, {"error": "Unauthorized access!"})
+
+    # encoding
+    query = request.json['query']
+    q_embedding = model.encode(query)
+
+    return jsonify({'q_embedding': q_embedding.tolist()})
+
+
+# s1 -> q for q in topic, sim?
+# find most similar embedded question within topic
+# calculate_nearest_sentence(q_embedding, topic)
+@app.route('/consult', methods=['POST'])
+def calculate_nearest_sentence():
+    # client validation
+    # check if hash of API key exists in database
+    api_key = request.json['api_key']
+    hashed_key = hash_key(api_key)
+    if (Key.query.filter_by(hashed_key=hashed_key) is None):
+        abort(401, {"error": "Unauthorized access!"})
+
+    # similarity calculation
+
+    q_embedding = np.array(request.json['q_embedding'])
+    topic = request.json['topic']
+    topic_filename = pipeline.answerextraction.clean_filename(topic)
+
+    if 'min_sim' in request.json:
+        MIN_SIM = 0
+    else:
+        MIN_SIM = request.json['min_sim']
+    
+    if 'max_sim' in request.json:
+        MAX_SIM = 1
+    else:
+        MAX_SIM = request.json['max_sim']
+    
+    f = open(f'../../data/embedded_qa/{topic_filename}.json', encoding='utf-8')
+    topic_qa_data = json.load(f)
+    f.close()
+
+    best_sim = MIN_SIM
+    best_ans = ""
+
+    for qa in topic_qa_data["qas"]:
+        doc_embedding = np.array(qa["embed"])
+        sim = util.cos_sim(q_embedding, doc_embedding)[0][0].item()
+        ans = qa["answer"]
+
+        if (sim > best_sim):
+            best_sim = sim
+            best_ans = ans
+        
+        if (sim > MAX_SIM):
+            break
+
+    return jsonify({'sim': best_sim, 'answer': best_ans})
 
 # compare similarity of two sentences
+# calculate_sentence_similarity(s1, s2)
 @app.route('/similarity', methods=['POST'])
 def calculate_sentence_similarity():
     # check if hash of API key exists in database
@@ -71,6 +142,7 @@ def calculate_sentence_similarity():
 
     return jsonify({'sim': sim[0][0].item()})
 
+# flask run --port 6970
 
 if __name__ == '__main__':
-    app.run(debug=True, port=port)
+    app.run(debug=True, port=6970)

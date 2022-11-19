@@ -5,6 +5,8 @@ import json
 import requests
 import os
 
+from .. import pipeline
+
 # global variables
 MIN_SIM = 0.7
 MAX_SIM = 0.97
@@ -19,8 +21,12 @@ app.config['SECRET_KEY'] = '971cf9854ab52d7c643b13c74795f86b5bc09ab6554e42c27155
 socket_ = SocketIO(app)
 
 # load QA pairs
-f = open('../../data/qa_data.json', encoding='utf-8')
-qa_data = json.load(f)
+# f = open('../../data/qa_data.json', encoding='utf-8')
+# qa_data = json.load(f)
+# f.close()
+
+f = open('../../data/title_list.json', encoding='utf-8')
+topic_list = json.load(f)
 f.close()
 
 
@@ -51,44 +57,61 @@ def chat_start():
 @socket_.on('send_message', namespace='/chat')
 def chat_send_message(message):
     # similarity API URL
-    domain = 'localhost'
+    domain = '127.0.0.1'
+    encode_api = f'http://{domain}:{port}/encode'
+    search_api = f'http://{domain}:{port}/consult'
     sim_api = f'http://{domain}:{port}/similarity'
 
     # default error message
-    max_sim = MIN_SIM
-    best_ans = "Sorry, we are not able to answer your question."
+    default_error_msg = "Sorry, we are not able to answer your question."
 
     # find answer
 
     # IMPLEMENT: POS tagging + NER
     
     # TO-DO process query
-    # TO-DO sequence tagging POS
-    # TO-DO filter tokens
-    # TO-DO sequence tagging NER
-    # TO-DO filter tokens
+    query = message['data']
+    tokens = pipeline.seqtagging.to_word_tokens(query)
 
+    # TO-DO sequence tagging NER
+    named_entities = pipeline.seqtagging.get_entities(tokens)
+    print(named_entities)
     # IMPLEMENT: topic recognition
 
     # TO-DO ...
+    
+    topics = topic_list["titles"][:2]
 
     # IMPLEMENT: question matching/answer extraction
 
     # TO-DO get embedded query
-    # TO-DO from top N topic matches
-    # TO-DO for all embedded questions
-    # TO-DO calculate cosine similarity to embedded query
-    # TO-DO keep track best answer and best similarity
-    # TO-DO if best similiarity > max threshold: return best answer
-    # TO-DO if best similarity > min threshold AND database exhausted: return best answer
-    # TO-DO else return default answer message
+    try:
+        # POST request to encoding API
+        r = requests.post(
+            encode_api, json={'api_key': api_key, 'query': query})
+    except Exception:
+        # if unable to connect, send suitable error message
+        print(Exception)
+        emit('bot_response', {
+            'data': "Sorry, this service is currently unavailable."})
+        return None
 
-    # EXAMPLE: question matching
-    for qa_pair in qa_data["data"][0]["qas"]: # TEST: take topic at index 0 only
+    if (r.status_code == 200):
+        q_embedding = r.json()['q_embedding']
+    else:
+        emit('bot_response', {
+            'data': "Sorry, this service is currently unavailable."})
+        return None
+    
+    # TO-DO search best match within topic list
+    best_sim = MIN_SIM
+    best_ans = ""
+
+    for topic in topics:
         try:
-            # POST request to similarity API
+            # POST request to search API
             r = requests.post(
-                sim_api, json={'api_key': api_key, 's1': message['data'], 's2': qa_pair[0]})
+                search_api, json={'api_key': api_key, 'q_embedding': q_embedding, 'topic': topic, 'min_sim': MIN_SIM, 'max_sim': MAX_SIM})
         except Exception:
             # if unable to connect, send suitable error message
             print(Exception)
@@ -96,19 +119,23 @@ def chat_send_message(message):
                 'data': "Sorry, this service is currently unavailable."})
             return None
 
-        # if status OK
         if (r.status_code == 200):
-            # if similarity above current max, set as best answer so far
-            if (r.json()['sim'] > max_sim):
-                max_sim = r.json()['sim']
-                best_ans = qa_pair["answer"].capitalize()
-                break
+            sim = r.json()['sim']
+            ans = r.json()['answer']
 
-        if (max_sim >= MAX_SIM):
-            # if better than expected max similarity threshold
-            break
+            if (sim > best_sim):
+                best_sim = sim
+                best_ans = ans
+        else:
+            emit('bot_response', {
+                'data': "Sorry, this service is currently unavailable."})
+            return None
+    
+    if (best_ans == ""):
+        best_sim = 0
+        best_ans = default_error_msg
 
-    print(f'[{session["user_token"]}]: {best_ans}, {max_sim}')
+    print(f'[{session["user_token"]}]: {best_ans}, {best_sim}')
 
     # emit best answer back to client
     emit('bot_response', {'data': best_ans})

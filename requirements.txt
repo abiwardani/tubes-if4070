@@ -1,3 +1,10 @@
 flask
 requests
 sentence-transformers
+flask-socketio
+flask-sqlalchemy
+python-dotenv
+spacy
+tensorflow
+torch
+transformers

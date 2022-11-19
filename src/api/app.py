@@ -83,7 +83,7 @@ answerlist = []
 simlist = []
 
 @app.route('/consult', methods=['POST'])
-def calculate_nearest_sentence(self, threshold, limit):
+def calculate_nearest_sentence():
     # client validation
     # check if hash of API key exists in database
     api_key = request.json['api_key']
@@ -98,15 +98,15 @@ def calculate_nearest_sentence(self, threshold, limit):
     topic_filename = pipeline.answerextraction.clean_filename(topic)
 
     if 'min_sim' in request.json:
-        MIN_SIM = 0
-    else:
         MIN_SIM = request.json['min_sim']
+    else:
+        MIN_SIM = 0
     
     if 'max_sim' in request.json:
-        MAX_SIM = 1
-    else:
         MAX_SIM = request.json['max_sim']
-    
+    else:
+        MAX_SIM = 1
+        
     f = open(f'../../data/embedded_qa/{topic_filename}.json', encoding='utf-8')
     topic_qa_data = json.load(f)
     f.close()
@@ -119,23 +119,14 @@ def calculate_nearest_sentence(self, threshold, limit):
         sim = util.cos_sim(q_embedding, doc_embedding)[0][0].item()
         ans = qa["answer"]
 
-        if (sim > threshold):
-            if(sim < limit):
-                best_sim = sim
-                best_ans = ans
-                answerlist.append(best_ans)
-                simlist.append(best_sim)
+        if (sim > best_sim):
+            best_sim = sim
+            best_ans = ans
         
         if (sim > MAX_SIM):
             break
     
-    currentphase += 1
-
-    if currentphase <= 3:
-        return jsonify({'sim': simlist, 'answer': answerlist})
-
-    else :
-        calculate_nearest_sentence(threshold, limit)
+    return jsonify({'sim': best_sim, 'answer': best_ans})
 
 
 # compare similarity of two sentences
@@ -156,6 +147,23 @@ def calculate_sentence_similarity():
     sim = util.cos_sim(s1_embedding, s2_embedding)
 
     return jsonify({'sim': sim[0][0].item()})
+
+# compare similarity of embedding and list embeddings
+# calculate_embed_similarity(e1, e_list)
+@app.route('/similarity2', methods=['POST'])
+def calculate_embed_similarity():
+    # check if hash of API key exists in database
+    api_key = request.json['api_key']
+    hashed_key = hash_key(api_key)
+    if (Key.query.filter_by(hashed_key=hashed_key) is None):
+        abort(401, {"error": "Unauthorized access!"})
+
+    e1 = request.json['e1']
+    e_list = request.json['e_list']
+
+    sim = util.cos_sim(e1, e_list)
+
+    return jsonify({'sim': sim.tolist()[0]})
 
 # flask run --port 6970
 

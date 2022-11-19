@@ -29,6 +29,9 @@ f = open('../../data/title_list.json', encoding='utf-8')
 topic_list = json.load(f)
 f.close()
 
+f = open('../../data/embedded_titles/title_list.json', encoding='utf-8')
+embedded_topic_list = json.load(f)
+f.close()
 
 # serve index page
 @app.route('/')
@@ -60,7 +63,7 @@ def chat_send_message(message):
     domain = '127.0.0.1'
     encode_api = f'http://{domain}:{port}/encode'
     search_api = f'http://{domain}:{port}/consult'
-    sim_api = f'http://{domain}:{port}/similarity'
+    sim_api = f'http://{domain}:{port}/similarity2'
 
     # default error message
     default_error_msg = "Sorry, we are not able to answer your question."
@@ -75,6 +78,29 @@ def chat_send_message(message):
 
     # sequence tagging NER
     named_entities = pipeline.seqtagging.get_entities(tokens)
+
+    # NER embedding
+    if len(named_entities) == 0:
+        ner = query
+    else:
+        ner = " ".join(named_entities)
+
+    try:
+        # POST request to encoding API
+        r = requests.post(encode_api, json={'api_key': api_key, 'query': ner})
+    except Exception:
+        # if unable to connect, send suitable error message
+        print(Exception)
+        emit('bot_response', {
+            'data': "Sorry, this service is currently unavailable."})
+        return None
+
+    if (r.status_code == 200):
+        q_embedding = r.json()['q_embedding']
+    else:
+        emit('bot_response', {
+            'data': "Sorry, this service is currently unavailable."})
+        return None
 
     # IMPLEMENT: topic recognition
 
@@ -93,14 +119,13 @@ def chat_send_message(message):
     #     topics.append(pipe.run(query))
 
     topics = topic_list["titles"]
+    topic_sim_list = [0 for _ in topics]
+    embedding_list = [topic["embed"] for topic in embedded_topic_list]
 
-    # IMPLEMENT: question matching/answer extraction
-
-    # TO-DO get embedded query
     try:
-        # POST request to encoding API
+        # POST request to search API
         r = requests.post(
-            encode_api, json={'api_key': api_key, 'query': query})
+            sim_api, json={'api_key': api_key, 'e1': q_embedding, 'e_list': embedding_list})
     except Exception:
         # if unable to connect, send suitable error message
         print(Exception)
@@ -109,11 +134,14 @@ def chat_send_message(message):
         return None
 
     if (r.status_code == 200):
-        q_embedding = r.json()['q_embedding']
-    else:
-        emit('bot_response', {
-            'data': "Sorry, this service is currently unavailable."})
-        return None
+        topic_sim_list = r.json()['sim']
+
+    sorted_topic_list = [x for _, x in sorted(zip(topic_sim_list, topic_list["titles"]), reverse=True)]
+    topics = sorted_topic_list[:5]
+    print(topics)
+    print(sorted(topic_sim_list)[:5])
+
+    # IMPLEMENT: question matching/answer extraction
     
     # TO-DO search best match within topic list
     best_sim = MIN_SIM

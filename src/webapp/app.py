@@ -69,18 +69,30 @@ def chat_send_message(message):
 
     # IMPLEMENT: POS tagging + NER
     
-    # TO-DO process query
+    # process query
     query = message['data']
     tokens = pipeline.seqtagging.to_word_tokens(query)
 
-    # TO-DO sequence tagging NER
+    # sequence tagging NER
     named_entities = pipeline.seqtagging.get_entities(tokens)
-    print(named_entities)
+
     # IMPLEMENT: topic recognition
 
     # TO-DO ...
     
-    topics = topic_list["titles"][:2]
+    # if (len(named_entities) == 0):
+    #     pipe = None
+    #     topics = [pipe.run(query)]
+    # else:
+    #     for named_entity in named_entities:
+    #         topics = [pipe.run(named_entity)]
+        
+    #     if (len(named_entities) > 1):
+    #         topics.append(pipe.run(" ".join(named_entities)))
+        
+    #     topics.append(pipe.run(query))
+
+    topics = topic_list["titles"]
 
     # IMPLEMENT: question matching/answer extraction
 

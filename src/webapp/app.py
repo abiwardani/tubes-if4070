@@ -4,12 +4,14 @@ from uuid import uuid4
 import json
 import requests
 import os
+from time import sleep
 
 from .. import pipeline
 
 # global variables
 MIN_SIM = 0.7
 MAX_SIM = 0.97
+TOPIC_LIMIT = [3, 5, 10, 20]
 
 # env variables
 port = os.environ.get("API_PORT")
@@ -96,7 +98,7 @@ def chat_send_message(message):
         return None
 
     if (r.status_code == 200):
-        q_embedding = r.json()['q_embedding']
+        ner_embedding = r.json()['q_embedding']
     else:
         emit('bot_response', {
             'data': "Sorry, this service is currently unavailable."})
@@ -125,7 +127,7 @@ def chat_send_message(message):
     try:
         # POST request to search API
         r = requests.post(
-            sim_api, json={'api_key': api_key, 'e1': q_embedding, 'e_list': embedding_list})
+            sim_api, json={'api_key': api_key, 'e1': ner_embedding, 'e_list': embedding_list})
     except Exception:
         # if unable to connect, send suitable error message
         print(Exception)
@@ -137,43 +139,73 @@ def chat_send_message(message):
         topic_sim_list = r.json()['sim']
 
     sorted_topic_list = [x for _, x in sorted(zip(topic_sim_list, topic_list["titles"]), reverse=True)]
-    topics = sorted_topic_list[:5]
-    print(topics)
-    print(sorted(topic_sim_list)[:5])
+    topics = sorted_topic_list
 
     # IMPLEMENT: question matching/answer extraction
+
+    try:
+        # POST request to encoding API
+        r = requests.post(encode_api, json={'api_key': api_key, 'query': query})
+    except Exception:
+        # if unable to connect, send suitable error message
+        print(Exception)
+        emit('bot_response', {
+            'data': "Sorry, this service is currently unavailable."})
+        return None
+
+    if (r.status_code == 200):
+        q_embedding = r.json()['q_embedding']
+    else:
+        emit('bot_response', {
+            'data': "Sorry, this service is currently unavailable."})
+        return None
     
     # TO-DO search best match within topic list
     best_sim = MIN_SIM
     best_ans = ""
+    lim = 0
 
-    for topic in topics:
-        try:
-            # POST request to search API
-            r = requests.post(
-                search_api, json={'api_key': api_key, 'q_embedding': q_embedding, 'topic': topic, 'min_sim': MIN_SIM, 'max_sim': MAX_SIM})
-        except Exception:
-            # if unable to connect, send suitable error message
-            print(Exception)
-            emit('bot_response', {
-                'data': "Sorry, this service is currently unavailable."})
-            return None
-
-        if (r.status_code == 200):
-            sim = r.json()['sim']
-            ans = r.json()['answer']
-
-            if (sim > best_sim):
-                best_sim = sim
-                best_ans = ans
+    while (best_ans == "" and lim < len(TOPIC_LIMIT)):
+        if lim == 0:
+            search_topics = topics[:TOPIC_LIMIT[lim]]
         else:
-            emit('bot_response', {
-                'data': "Sorry, this service is currently unavailable."})
-            return None
+            search_topics = topics[TOPIC_LIMIT[lim-1]+1:TOPIC_LIMIT]
+        
+        for topic in search_topics:
+            try:
+                # POST request to search API
+                r = requests.post(
+                    search_api, json={'api_key': api_key, 'q_embedding': q_embedding, 'topic': topic, 'min_sim': MIN_SIM, 'max_sim': MAX_SIM})
+            except Exception:
+                # if unable to connect, send suitable error message
+                print(Exception)
+                emit('bot_response', {
+                    'data': "Sorry, this service is currently unavailable."})
+                return None
+
+            if (r.status_code == 200):
+                sim = r.json()['sim']
+                ans = r.json()['answer']
+
+                if (sim > best_sim):
+                    best_sim = sim
+                    best_ans = ans
+                
+                if (sim > MAX_SIM):
+                    break
+            else:
+                emit('bot_response', {
+                    'data': "Sorry, this service is currently unavailable."})
+                return None
+        
+        if (sim > MAX_SIM):
+            break
     
     if (best_ans == ""):
         best_sim = 0
         best_ans = default_error_msg
+    
+    best_ans = best_ans[0].upper()+best_ans[1:]
 
     print(f'[{session["user_token"]}]: {best_ans}, {best_sim}')
 

@@ -92,14 +92,14 @@ def calculate_nearest_sentence():
     topic = request.json['topic']
     topic_filename = pipeline.answerextraction.clean_filename(topic)
 
-    if 'min_sim' in request.json:
+    try:
         MIN_SIM = request.json['min_sim']
-    else:
+    except Exception:
         MIN_SIM = 0
     
-    if 'max_sim' in request.json:
+    try:
         MAX_SIM = request.json['max_sim']
-    else:
+    except Exception:
         MAX_SIM = 1
         
     f = open(f'../../data/embedded_qa/{topic_filename}.json', encoding='utf-8')

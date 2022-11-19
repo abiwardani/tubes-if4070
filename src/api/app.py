@@ -77,13 +77,8 @@ def encode_sentence():
 # s1 -> q for q in topic, sim?
 # find most similar embedded question within topic
 # calculate_nearest_sentence(q_embedding, topic)
-
-currentphase = 0 
-answerlist = []
-simlist = []
-
 @app.route('/consult', methods=['POST'])
-def calculate_nearest_sentence(self, threshold, limit):
+def calculate_nearest_sentence():
     # client validation
     # check if hash of API key exists in database
     api_key = request.json['api_key']
@@ -119,24 +114,14 @@ def calculate_nearest_sentence(self, threshold, limit):
         sim = util.cos_sim(q_embedding, doc_embedding)[0][0].item()
         ans = qa["answer"]
 
-        if (sim > threshold):
-            if(sim < limit):
-                best_sim = sim
-                best_ans = ans
-                answerlist.append(best_ans)
-                simlist.append(best_sim)
+        if (sim > best_sim):
+            best_sim = sim
+            best_ans = ans
         
         if (sim > MAX_SIM):
             break
-    
-    currentphase += 1
 
-    if currentphase <= 3:
-        return jsonify({'sim': simlist, 'answer': answerlist})
-
-    else :
-        calculate_nearest_sentence(threshold, limit)
-
+    return jsonify({'sim': best_sim, 'answer': best_ans})
 
 # compare similarity of two sentences
 # calculate_sentence_similarity(s1, s2)

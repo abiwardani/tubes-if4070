@@ -77,11 +77,6 @@ def encode_sentence():
 # s1 -> q for q in topic, sim?
 # find most similar embedded question within topic
 # calculate_nearest_sentence(q_embedding, topic)
-
-currentphase = 0 
-answerlist = []
-simlist = []
-
 @app.route('/consult', methods=['POST'])
 def calculate_nearest_sentence():
     # client validation
@@ -127,7 +122,6 @@ def calculate_nearest_sentence():
             break
     
     return jsonify({'sim': best_sim, 'answer': best_ans})
-
 
 # compare similarity of two sentences
 # calculate_sentence_similarity(s1, s2)

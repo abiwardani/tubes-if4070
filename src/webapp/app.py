@@ -200,6 +200,8 @@ def chat_send_message(message):
         
         if (sim > MAX_SIM):
             break
+            
+        lim += 1
     
     if (best_ans == ""):
         best_sim = 0

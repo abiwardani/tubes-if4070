@@ -169,7 +169,7 @@ def chat_send_message(message):
         if lim == 0:
             search_topics = topics[:TOPIC_LIMIT[lim]]
         else:
-            search_topics = topics[TOPIC_LIMIT[lim-1]+1:TOPIC_LIMIT]
+            search_topics = topics[TOPIC_LIMIT[lim-1]+1:TOPIC_LIMIT[lim]]
         
         for topic in search_topics:
             try:

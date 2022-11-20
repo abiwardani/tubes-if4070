@@ -9,9 +9,10 @@ from time import sleep
 from .. import pipeline
 
 # global variables
-MIN_SIM = 0.7
+MIN_SIM = 0.8
 MAX_SIM = 0.97
 TOPIC_LIMIT = [3, 5, 10, 20]
+DEFAULT_ERR_MSG = "Sorry, we are not able to answer your question."
 
 # env variables
 port = os.environ.get("API_PORT")
@@ -66,9 +67,6 @@ def chat_send_message(message):
     encode_api = f'http://{domain}:{port}/encode'
     search_api = f'http://{domain}:{port}/consult'
     sim_api = f'http://{domain}:{port}/similarity2'
-
-    # default error message
-    default_error_msg = "Sorry, we are not able to answer your question."
 
     # find answer
 
@@ -172,6 +170,7 @@ def chat_send_message(message):
             search_topics = topics[TOPIC_LIMIT[lim-1]+1:TOPIC_LIMIT[lim]]
         
         for topic in search_topics:
+            print(topic)
             try:
                 # POST request to search API
                 r = requests.post(
@@ -205,7 +204,7 @@ def chat_send_message(message):
     
     if (best_ans == ""):
         best_sim = 0
-        best_ans = default_error_msg
+        best_ans = DEFAULT_ERR_MSG
     
     best_ans = best_ans[0].upper()+best_ans[1:]
 
